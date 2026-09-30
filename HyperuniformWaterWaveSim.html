@@ -1,0 +1,1441 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hyperuniform Water-Wave Lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090f1d;
+        --panel: #111b2e;
+        --border: #29374e;
+        --text: #e5ecf7;
+        --muted: #9cacc5;
+        --blue: #60b7ff;
+        --orange: #ffa36b;
+        --green: #78e0bb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.5 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1420px;
+        margin: auto;
+        padding: 24px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+      p {
+        color: var(--muted);
+      }
+      .intro {
+        max-width: 1050px;
+        margin: 8px 0 20px;
+      }
+      .reference {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 6px 0 20px;
+      }
+      .reference a {
+        color: var(--blue);
+      }
+      .reference a:hover {
+        color: #8fcaff;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        padding: 16px;
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px 26px;
+      }
+      label.control {
+        display: block;
+      }
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      output {
+        color: var(--green);
+        font-variant-numeric: tabular-nums;
+      }
+      input[type='range'] {
+        width: 100%;
+        accent-color: var(--green);
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      button,
+      select {
+        color: var(--text);
+        background: #1b2940;
+        border: 1px solid #40516c;
+        border-radius: 7px;
+        padding: 8px 12px;
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        background: #2b3d59;
+      }
+      input[type='checkbox'] {
+        accent-color: var(--green);
+      }
+      #status {
+        margin: 12px 0;
+        min-height: 23px;
+        color: var(--green);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .metric .name {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .metric .value {
+        font-size: 24px;
+        margin: 3px 0;
+      }
+      .metric .detail {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .views,
+      .plots {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+      .views .panel {
+        padding: 12px;
+      }
+      .view-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1px 3px 10px;
+      }
+      .random {
+        color: var(--blue);
+      }
+      .shu {
+        color: var(--orange);
+      }
+      canvas.wave {
+        display: block;
+        width: 100%;
+        height: auto;
+        background: #081121;
+        border-radius: 7px;
+      }
+      .caption {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      .plots {
+        margin-top: 16px;
+      }
+      canvas.chart {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin-top: 8px;
+      }
+      .legend {
+        margin: 10px 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      details {
+        margin-top: 16px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      details li {
+        color: var(--muted);
+        margin: 8px 0;
+      }
+      code {
+        color: #bbd8ff;
+      }
+      .busy .views {
+        opacity: 0.65;
+      }
+      @media (max-width: 850px) {
+        .controls {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .metrics {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .views,
+        .plots {
+          grid-template-columns: 1fr;
+        }
+        main {
+          padding: 14px;
+        }
+      }
+      @media (max-width: 480px) {
+        .controls {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="app">
+      <h1>Hyperuniform Water-Wave Lab</h1>
+      <p class="reference">
+        Based on the paper
+        <a href="https://arxiv.org/abs/2602.07067" target="_blank" rel="noopener"
+          >“Experimentally controlling scattering of water waves in correlated disorder”</a
+        >
+        by Campaniello, Carminati, Filoche &amp; Fort, <em>arXiv:2602.07067</em> (2026).
+      </p>
+      <p class="intro">
+        Compare a random point pattern with a Fourier-optimized SHU pattern. The complex wavefield is computed with a
+        coupled-scatterer model. Animation shows the resulting monochromatic steady state.
+      </p>
+
+      <section class="panel">
+        <div class="controls">
+          <label class="control">
+            <span class="label-row"> <span>SHU correlations χ</span><output id="chiOut"></output> </span>
+            <input id="chi" type="range" min="0" max=".50" step=".01" value=".45" />
+            <span class="hint">0 = random; larger χ constrains more Fourier modes</span>
+          </label>
+
+          <label class="control">
+            <span class="label-row"> <span>Wave frequency</span><output id="freqOut"></output> </span>
+            <input id="freq" type="range" min="3.5" max="10" step=".1" value="5" />
+            <span class="hint">Gravity–capillary dispersion; water depth 7 cm</span>
+          </label>
+
+          <label class="control">
+            <span class="label-row"> <span>Scatterer density</span><output id="rhoOut"></output> </span>
+            <input id="rho" type="range" min=".06" max=".22" step=".01" value=".18" />
+            <span class="hint">32 × 32 cm medium; point scatterers</span>
+          </label>
+
+          <label class="control">
+            <span class="label-row"> <span>Scatterer coupling</span><output id="strengthOut"></output> </span>
+            <input id="strength" type="range" min="0" max=".6" step=".01" value=".32" />
+            <span class="hint">Model parameter, not a measured cylinder diameter</span>
+          </label>
+
+          <label class="control">
+            <span class="label-row"> <span>Amplitude absorption β</span><output id="betaOut"></output> </span>
+            <input id="beta" type="range" min="0" max=".03" step=".001" value=".004" />
+            <span class="hint">Free-wave amplitude ∝ exp(−βz)</span>
+          </label>
+
+          <label class="control">
+            <span class="label-row"> <span>Playback speed</span><output id="speedOut"></output> </span>
+            <input id="speed" type="range" min=".02" max="1" step=".02" value=".12" />
+            <span class="hint">Changes animation only, not the computed physics</span>
+          </label>
+        </div>
+
+        <div class="toolbar">
+          <button id="newSeed">New realization</button>
+          <button id="pause">Pause</button>
+          <button id="low">5 Hz</button>
+          <button id="high">8 Hz</button>
+
+          <select id="view" aria-label="Wavefield display">
+            <option value="wave">Surface elevation: Re φ</option>
+            <option value="amplitude">Amplitude: |φ|</option>
+            <option value="phase">Phase: arg φ</option>
+            <option value="current">Current magnitude: |J|</option>
+          </select>
+
+          <label><input id="streams" type="checkbox" checked /> Current streamlines</label>
+          <label><input id="contours" type="checkbox" /> |J| contours</label>
+        </div>
+      </section>
+
+      <div id="status" role="status" aria-live="polite">Initializing…</div>
+
+      <section class="metrics">
+        <div class="panel metric">
+          <div class="name">Random: apparent coherent extinction length</div>
+          <div class="value random" id="ellRandom">—</div>
+          <div class="detail" id="fitRandom">—</div>
+        </div>
+        <div class="panel metric">
+          <div class="name">SHU: apparent coherent extinction length</div>
+          <div class="value shu" id="ellShu">—</div>
+          <div class="detail" id="fitShu">—</div>
+        </div>
+        <div class="panel metric">
+          <div class="name">Nominal SHU threshold</div>
+          <div class="value" id="threshold">—</div>
+          <div class="detail" id="regime">—</div>
+        </div>
+        <div class="panel metric">
+          <div class="name">SHU optimization residual: mean constrained S</div>
+          <div class="value" id="residual">—</div>
+          <div class="detail" id="patternInfo">—</div>
+        </div>
+      </section>
+
+      <section class="views">
+        <div class="panel">
+          <div class="view-head">
+            <h2 class="random">Random medium</h2>
+            <span class="hint">Incident wave →</span>
+          </div>
+          <canvas id="randomCanvas" class="wave" width="640" height="640"></canvas>
+          <div class="caption">Horizontal coordinate z; vertical coordinate x. Both span 32 cm.</div>
+        </div>
+        <div class="panel">
+          <div class="view-head">
+            <h2 class="shu">SHU medium</h2>
+            <span class="hint">Same density and scatterer response</span>
+          </div>
+          <canvas id="shuCanvas" class="wave" width="640" height="640"></canvas>
+          <div class="caption">White curves: current streamlines. Cyan: optional equal-|J| contours.</div>
+        </div>
+      </section>
+
+      <div class="legend" id="colorLegend">Elevation: blue = negative, white = zero, orange = positive.</div>
+
+      <section class="plots">
+        <div class="panel">
+          <h2>Coherent intensity and exponential fits</h2>
+          <canvas id="decayChart" class="chart" width="720" height="320"></canvas>
+          <div class="caption">
+            Solid: |transverse mean φ|². Dashed: fit over the interior 15–85%. Gray: free propagation exp(−2βz). Blue:
+            random; orange: SHU.
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Structure factor S(q)</h2>
+          <canvas id="structureChart" class="chart" width="720" height="320"></canvas>
+          <div class="caption">
+            Radial averages on the periodic reciprocal grid; q = 0 is excluded. Green region: constrained modes q ≤ K.
+            Vertical marker: 2k.
+          </div>
+        </div>
+      </section>
+
+      <details class="panel">
+        <summary>Model, conventions, and limitations</summary>
+        <ul>
+          <li>
+            Patterns: a random point set is optimized by minimizing
+            Σ<sub>0&lt;|q|≤K</sub>|Σ<sub>j</sub>exp(iq·r<sub>j</sub>)|², with periodic boundary conditions for pattern
+            generation. The scattering calculation uses the resulting finite patch with open boundaries.
+          </li>
+          <li>
+            Nominal cutoff: K = √(16πρχ), and suppressed single scattering is expected for 2k ≤ K. A finite patch,
+            discrete constraints, incomplete optimization, and higher-order scattering prevent this from being an exact
+            on/off switch.
+          </li>
+          <li>
+            Fields: φ(r) = φ<sub>inc</sub>(r) + Σ G(r−r<sub>j</sub>)b<sub>j</sub>, with (t⁻¹I−G)b = φ<sub>inc</sub>.
+            G(r) = (i/4)H₀⁽¹⁾(kr)exp(−βr). The exponential loss factor is phenomenological.
+          </li>
+          <li>
+            Point-scatterer response: t = 4u/(1−iu), with u = coupling × [k/(1 cm⁻¹)]. This is an illustrative isotropic
+            response, not a fitted PMMA-cylinder response. The immediate neighborhood of each point is masked.
+          </li>
+          <li>
+            Current: J = Im(φ*∇φ), normalized by the incident current k. Streamlines and contours are calculated from
+            this field, not drawn as decorations.
+          </li>
+          <li>
+            Extinction convention: ⟨φ⟩ ∝ exp[−z/(2ℓ<sub>e</sub>)]. Because β attenuates amplitude, 1/ℓ<sub>e</sub> =
+            1/ℓ<sub>s</sub> + 2β. Consequently the absorption-corrected fitted coefficient is α = 1/ℓ<sub>e</sub> − 2β.
+          </li>
+          <li>
+            The displayed extinction length is a single-pattern, transverse-coherence estimate—not an ensemble-averaged
+            transport measurement. Poor R², non-decaying fits, or negative corrected α indicate that this estimate is
+            not a reliable scattering mean free path.
+          </li>
+          <li>
+            This is a steady-state scalar-wave demonstration, not a transient fluid solver. It does not model cylinder
+            boundary layers, contact-line physics, nonlinear surface waves, or the experimental uncertainty bars.
+          </li>
+        </ul>
+      </details>
+    </main>
+
+    <script>
+      'use strict';
+
+      /* Everything inside this function runs in a background worker. */
+      function simulationWorker() {
+        const PI = Math.PI,
+          TAU = 2 * PI;
+        const L = 32,
+          W = 181,
+          DX = L / (W - 1);
+        const MASK_RADIUS = 0.36;
+
+        function rng(seed) {
+          return function () {
+            let t = (seed += 0x6d2b79f5);
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+
+        function waveNumber(f) {
+          const omega2 = (TAU * f) ** 2;
+          let lo = 0,
+            hi = 1000;
+          for (let i = 0; i < 65; i++) {
+            const k = (lo + hi) / 2; // m^-1
+            const rhs = (9.81 * k + (0.072 / 1000) * k ** 3) * Math.tanh(k * 0.07);
+            if (rhs < omega2) lo = k;
+            else hi = k;
+          }
+          return (lo + hi) / 200; // cm^-1
+        }
+
+        function frequencyFromK(kcm) {
+          const k = kcm * 100;
+          return Math.sqrt((9.81 * k + (0.072 / 1000) * k ** 3) * Math.tanh(k * 0.07)) / TAU;
+        }
+
+        function makeModes(K) {
+          const dq = TAU / L,
+            m = Math.floor(K / dq),
+            modes = [];
+          for (let a = -m; a <= m; a++) {
+            for (let b = -m; b <= m; b++) {
+              // One member of each ±q pair; never include q=0.
+              if (!(a > 0 || (a === 0 && b > 0))) continue;
+              const qx = a * dq,
+                qy = b * dq;
+              if (qx * qx + qy * qy <= K * K + 1e-12) modes.push([qx, qy]);
+            }
+          }
+          return modes;
+        }
+
+        function optimize(initial, K) {
+          const points = new Float64Array(initial);
+          const n = points.length / 2,
+            modes = makeModes(K),
+            M = modes.length;
+          if (!M) return { points, residual: null, M, iterations: 0 };
+
+          const velocity = new Float64Array(2 * n);
+          const gradient = new Float64Array(2 * n);
+          const cs = new Float64Array(n),
+            sn = new Float64Array(n);
+
+          function evaluate() {
+            gradient.fill(0);
+            let energy = 0;
+            for (const [qx, qy] of modes) {
+              let C = 0,
+                S = 0;
+              for (let j = 0; j < n; j++) {
+                const a = qx * points[2 * j] + qy * points[2 * j + 1];
+                cs[j] = Math.cos(a);
+                sn[j] = Math.sin(a);
+                C += cs[j];
+                S += sn[j];
+              }
+              energy += (C * C + S * S) / n;
+              for (let j = 0; j < n; j++) {
+                const d = (2 * (-C * sn[j] + S * cs[j])) / n;
+                gradient[2 * j] += qx * d;
+                gradient[2 * j + 1] += qy * d;
+              }
+            }
+            return energy / M;
+          }
+
+          // FIRE minimization: adaptive damped dynamics in configuration space.
+          let dt = 0.06,
+            mixing = 0.1,
+            positive = 0,
+            residual = evaluate(),
+            iteration = 0;
+          for (; iteration < 2400 && residual > 1e-7; iteration++) {
+            let power = 0,
+              v2 = 0,
+              g2 = 0;
+            for (let j = 0; j < 2 * n; j++) {
+              velocity[j] -= dt * gradient[j];
+              power -= velocity[j] * gradient[j];
+              v2 += velocity[j] * velocity[j];
+              g2 += gradient[j] * gradient[j];
+            }
+            if (power > 0) {
+              positive++;
+              const ratio = Math.sqrt(v2 / Math.max(g2, 1e-30));
+              for (let j = 0; j < 2 * n; j++) {
+                velocity[j] = (1 - mixing) * velocity[j] - mixing * ratio * gradient[j];
+              }
+              if (positive > 5) {
+                dt = Math.min(dt * 1.1, 0.35);
+                mixing *= 0.99;
+              }
+            } else {
+              velocity.fill(0);
+              dt *= 0.5;
+              mixing = 0.1;
+              positive = 0;
+            }
+            for (let j = 0; j < 2 * n; j++) {
+              points[j] += dt * velocity[j];
+              points[j] = ((points[j] % L) + L) % L;
+            }
+            residual = evaluate();
+            if (iteration % 160 === 0) {
+              postMessage({
+                type: 'progress',
+                text: `Optimizing SHU pattern: step ${iteration}, mean S = ${residual.toExponential(2)}`,
+              });
+            }
+          }
+          return { points, residual, M, iterations: iteration };
+        }
+
+        // J0 and Y0: convergent series for small arguments, asymptotic form for large ones.
+        function bessel0(x) {
+          if (x < 8) {
+            const z = (-x * x) / 4;
+            let term = 1,
+              J = 1,
+              H = 0,
+              sum = 0;
+            for (let m = 1; m < 70; m++) {
+              term *= z / (m * m);
+              H += 1 / m;
+              J += term;
+              sum -= H * term;
+              if (Math.abs(term) < 1e-16) break;
+            }
+            const Y = (2 / PI) * ((Math.log(x / 2) + 0.5772156649015329) * J + sum);
+            return [J, Y];
+          }
+          const inv = 1 / x,
+            inv2 = inv * inv;
+          const P = 1 - (9 / 128) * inv2 + (11025 / 98304) * inv2 * inv2;
+          const Q = -inv / 8 + (75 / 1024) * inv * inv2;
+          const phase = x - PI / 4,
+            a = Math.sqrt(2 / (PI * x));
+          const c = Math.cos(phase),
+            s = Math.sin(phase);
+          return [a * (P * c - Q * s), a * (P * s + Q * c)];
+        }
+
+        function greenTable(k, beta) {
+          const step = 0.006,
+            count = Math.ceil((Math.SQRT2 * L) / step) + 3;
+          const re = new Float64Array(count),
+            im = new Float64Array(count);
+          for (let i = 0; i < count; i++) {
+            const r = Math.max(i * step, 0.025);
+            const [J, Y] = bessel0(k * r),
+              decay = Math.exp(-beta * r) / 4;
+            re[i] = -Y * decay;
+            im[i] = J * decay;
+          }
+          return { re, im, invStep: 1 / step };
+        }
+
+        function solveSources(points, k, beta, u, G) {
+          const n = points.length / 2;
+          const br = new Float64Array(n),
+            bi = new Float64Array(n);
+          if (u === 0) return { re: br, im: bi };
+
+          const ar = new Float64Array(n * n),
+            ai = new Float64Array(n * n);
+          for (let i = 0; i < n; i++) {
+            const x = points[2 * i],
+              d = Math.exp(-beta * x);
+            br[i] = d * Math.cos(k * x);
+            bi[i] = d * Math.sin(k * x);
+            ar[i * n + i] = 1 / (4 * u);
+            ai[i * n + i] = -0.25;
+            for (let j = 0; j < i; j++) {
+              const r = Math.hypot(x - points[2 * j], points[2 * i + 1] - points[2 * j + 1]);
+              const z = r * G.invStep,
+                m = Math.floor(z),
+                t = z - m;
+              const gr = G.re[m] * (1 - t) + G.re[m + 1] * t;
+              const gi = G.im[m] * (1 - t) + G.im[m + 1] * t;
+              ar[i * n + j] = ar[j * n + i] = -gr;
+              ai[i * n + j] = ai[j * n + i] = -gi;
+            }
+          }
+
+          // Complex Gaussian elimination with partial pivoting.
+          for (let c = 0; c < n; c++) {
+            let pivot = c,
+              best = 0;
+            for (let r = c; r < n; r++) {
+              const a = r * n + c,
+                v = ar[a] * ar[a] + ai[a] * ai[a];
+              if (v > best) {
+                best = v;
+                pivot = r;
+              }
+            }
+            if (best < 1e-22) throw Error('Nearly singular scattering system. Reduce coupling.');
+            if (pivot !== c) {
+              for (let j = c; j < n; j++) {
+                let a = c * n + j,
+                  b = pivot * n + j,
+                  tmp = ar[a];
+                ar[a] = ar[b];
+                ar[b] = tmp;
+                tmp = ai[a];
+                ai[a] = ai[b];
+                ai[b] = tmp;
+              }
+              let tmp = br[c];
+              br[c] = br[pivot];
+              br[pivot] = tmp;
+              tmp = bi[c];
+              bi[c] = bi[pivot];
+              bi[pivot] = tmp;
+            }
+            const d = c * n + c,
+              pr = ar[d],
+              pi = ai[d],
+              den = pr * pr + pi * pi;
+            for (let r = c + 1; r < n; r++) {
+              const a = r * n + c;
+              const fr = (ar[a] * pr + ai[a] * pi) / den;
+              const fi = (ai[a] * pr - ar[a] * pi) / den;
+              for (let j = c + 1; j < n; j++) {
+                const q = r * n + j,
+                  s = c * n + j;
+                ar[q] -= fr * ar[s] - fi * ai[s];
+                ai[q] -= fr * ai[s] + fi * ar[s];
+              }
+              br[r] -= fr * br[c] - fi * bi[c];
+              bi[r] -= fr * bi[c] + fi * br[c];
+            }
+          }
+
+          for (let r = n - 1; r >= 0; r--) {
+            let vr = br[r],
+              vi = bi[r];
+            for (let j = r + 1; j < n; j++) {
+              const a = r * n + j;
+              vr -= ar[a] * br[j] - ai[a] * bi[j];
+              vi -= ar[a] * bi[j] + ai[a] * br[j];
+            }
+            const a = r * n + r,
+              den = ar[a] * ar[a] + ai[a] * ai[a];
+            br[r] = (vr * ar[a] + vi * ai[a]) / den;
+            bi[r] = (vi * ar[a] - vr * ai[a]) / den;
+          }
+          return { re: br, im: bi };
+        }
+
+        function fitDecay(profile, beta) {
+          let sx = 0,
+            sy = 0,
+            sxx = 0,
+            sxy = 0,
+            count = 0;
+          for (let i = 0; i < W; i++) {
+            const x = i * DX;
+            if (x < 0.15 * L || x > 0.85 * L || profile[i] <= 1e-12) continue;
+            const y = Math.log(profile[i]);
+            sx += x;
+            sy += y;
+            sxx += x * x;
+            sxy += x * y;
+            count++;
+          }
+          const slope = (count * sxy - sx * sy) / (count * sxx - sx * sx);
+          const intercept = (sy - slope * sx) / count;
+          let ss = 0,
+            err = 0;
+          for (let i = 0; i < W; i++) {
+            const x = i * DX;
+            if (x < 0.15 * L || x > 0.85 * L || profile[i] <= 1e-12) continue;
+            const y = Math.log(profile[i]);
+            ss += (y - sy / count) ** 2;
+            err += (y - intercept - slope * x) ** 2;
+          }
+          return {
+            slope,
+            intercept,
+            ell: slope < -1e-6 ? -1 / slope : null,
+            r2: ss > 1e-12 ? 1 - err / ss : null,
+            alpha: -slope - 2 * beta,
+          };
+        }
+
+        function field(points, k, beta, u, G) {
+          const n = points.length / 2,
+            size = W * W;
+          const sources = solveSources(points, k, beta, u, G);
+          const re = new Float32Array(size),
+            im = new Float32Array(size);
+          const mask = new Uint8Array(size);
+          const jx = new Float32Array(size),
+            jy = new Float32Array(size);
+          const jm = new Float32Array(size),
+            profile = new Float32Array(W);
+
+          for (let y = 0; y < W; y++) {
+            for (let x = 0; x < W; x++) {
+              const X = x * DX,
+                Y = y * DX,
+                idx = y * W + x,
+                d = Math.exp(-beta * X);
+              let R = d * Math.cos(k * X),
+                I = d * Math.sin(k * X);
+              for (let j = 0; j < n; j++) {
+                const r = Math.hypot(X - points[2 * j], Y - points[2 * j + 1]);
+                if (r < MASK_RADIUS) {
+                  mask[idx] = 1;
+                  break;
+                }
+                const z = r * G.invStep,
+                  m = Math.floor(z),
+                  t = z - m;
+                const gr = G.re[m] * (1 - t) + G.re[m + 1] * t;
+                const gi = G.im[m] * (1 - t) + G.im[m + 1] * t;
+                R += gr * sources.re[j] - gi * sources.im[j];
+                I += gr * sources.im[j] + gi * sources.re[j];
+              }
+              if (!mask[idx]) {
+                re[idx] = R;
+                im[idx] = I;
+              }
+            }
+          }
+
+          for (let y = 1; y < W - 1; y++) {
+            for (let x = 1; x < W - 1; x++) {
+              const i = y * W + x;
+              if (mask[i] || mask[i - 1] || mask[i + 1] || mask[i - W] || mask[i + W]) continue;
+              const drx = (re[i + 1] - re[i - 1]) / (2 * DX);
+              const dix = (im[i + 1] - im[i - 1]) / (2 * DX);
+              const dry = (re[i + W] - re[i - W]) / (2 * DX);
+              const diy = (im[i + W] - im[i - W]) / (2 * DX);
+              jx[i] = (re[i] * dix - im[i] * drx) / k;
+              jy[i] = (re[i] * diy - im[i] * dry) / k;
+              jm[i] = Math.hypot(jx[i], jy[i]);
+            }
+          }
+
+          for (let x = 0; x < W; x++) {
+            let R = 0,
+              I = 0,
+              count = 0;
+            for (let y = Math.ceil(0.12 * W); y < 0.88 * W; y++) {
+              const i = y * W + x;
+              if (!mask[i]) {
+                R += re[i];
+                I += im[i];
+                count++;
+              }
+            }
+            profile[x] = (R * R + I * I) / Math.max(1, count * count);
+          }
+
+          return {
+            points,
+            re,
+            im,
+            mask,
+            jx,
+            jy,
+            jm,
+            profile,
+            fit: fitDecay(profile, beta),
+          };
+        }
+
+        function spectrum(points, maxQ) {
+          const n = points.length / 2,
+            dq = TAU / L;
+          const modes = makeModes(maxQ),
+            bins = [];
+          for (const [qx, qy] of modes) {
+            let C = 0,
+              S = 0;
+            for (let j = 0; j < n; j++) {
+              const a = qx * points[2 * j] + qy * points[2 * j + 1];
+              C += Math.cos(a);
+              S += Math.sin(a);
+            }
+            const q = Math.hypot(qx, qy),
+              b = Math.floor(q / dq);
+            if (!bins[b]) bins[b] = { q: 0, s: 0, n: 0 };
+            bins[b].q += q;
+            bins[b].s += (C * C + S * S) / n;
+            bins[b].n++;
+          }
+          return bins.filter(Boolean).map((b) => [b.q / b.n, b.s / b.n]);
+        }
+
+        self.onmessage = function (event) {
+          try {
+            const { p, cache } = event.data;
+            const n = Math.round(p.rho * L * L),
+              rho = n / (L * L);
+            const k = waveNumber(p.freq),
+              K = Math.sqrt(16 * PI * rho * p.chi);
+            let random, optimized;
+            if (cache) {
+              random = new Float64Array(cache.random);
+              optimized = {
+                points: new Float64Array(cache.shu),
+                residual: cache.residual,
+                M: cache.M,
+                iterations: cache.iterations,
+              };
+            } else {
+              const rand = rng(p.seed);
+              random = new Float64Array(2 * n);
+              for (let j = 0; j < 2 * n; j++) random[j] = L * rand();
+              optimized = optimize(random, K);
+            }
+            postMessage({ type: 'progress', text: 'Solving coupled fields and energy currents…' });
+            const G = greenTable(k, p.beta);
+            const u = p.strength * k;
+            const a = field(random, k, p.beta, u, G);
+            const b = field(optimized.points, k, p.beta, u, G);
+            const qmax = Math.max(3.5, 1.2 * K, 2.15 * k);
+            a.spectrum = spectrum(random, qmax);
+            b.spectrum = spectrum(optimized.points, qmax);
+
+            postMessage({
+              type: 'result',
+              p,
+              L,
+              W,
+              k,
+              K,
+              rho,
+              n,
+              qmax,
+              thresholdHz: frequencyFromK(K / 2),
+              residual: optimized.residual,
+              M: optimized.M,
+              iterations: optimized.iterations,
+              a,
+              b,
+            });
+          } catch (error) {
+            postMessage({ type: 'error', text: error.message });
+          }
+        };
+      }
+
+      /* ---------- Interface ---------- */
+      const $ = (id) => document.getElementById(id);
+      const workerURL = URL.createObjectURL(
+        new Blob(['(' + simulationWorker.toString() + ')()'], { type: 'application/javascript' }),
+      );
+
+      let worker = null,
+        data = null,
+        cache = null,
+        cacheKey = '',
+        seed = 17;
+      let timer = null,
+        paused = false,
+        phase = 0,
+        lastTime = 0,
+        lastDraw = 0;
+      let flowTime = 0;
+
+      function parameters() {
+        return {
+          chi: +$('chi').value,
+          freq: +$('freq').value,
+          rho: +$('rho').value,
+          strength: +$('strength').value,
+          beta: +$('beta').value,
+          seed,
+        };
+      }
+      function labels() {
+        $('chiOut').textContent = (+$('chi').value).toFixed(2);
+        $('freqOut').textContent = (+$('freq').value).toFixed(1) + ' Hz';
+        $('rhoOut').textContent = (+$('rho').value).toFixed(2) + ' cm⁻²';
+        $('strengthOut').textContent = (+$('strength').value).toFixed(2);
+        $('betaOut').textContent = (+$('beta').value).toFixed(3) + ' cm⁻¹';
+        $('speedOut').textContent = (+$('speed').value).toFixed(2) + '×';
+      }
+      function schedule() {
+        labels();
+        clearTimeout(timer);
+        $('status').textContent = 'Parameters changed; preparing calculation…';
+        timer = setTimeout(run, 320);
+      }
+      function run() {
+        clearTimeout(timer);
+        const p = parameters();
+        const key = [p.chi, p.rho, p.seed].join('|');
+        if (worker) worker.terminate();
+        $('app').classList.add('busy');
+        $('status').textContent =
+          cache && key === cacheKey
+            ? 'Reusing point pattern; recomputing wavefields…'
+            : 'Generating and optimizing point patterns…';
+
+        const active = new Worker(workerURL);
+        worker = active;
+        active.onmessage = (e) => {
+          if (worker !== active) return;
+          const m = e.data;
+          if (m.type === 'progress') $('status').textContent = m.text;
+          if (m.type === 'error') {
+            $('status').textContent = 'Calculation error: ' + m.text;
+            $('app').classList.remove('busy');
+            active.terminate();
+            worker = null;
+          }
+          if (m.type === 'result') {
+            data = m;
+            cacheKey = key;
+            cache = {
+              random: m.a.points,
+              shu: m.b.points,
+              residual: m.residual,
+              M: m.M,
+              iterations: m.iterations,
+            };
+            prepareView(m.a, $('randomCanvas'));
+            prepareView(m.b, $('shuCanvas'));
+            updateMetrics();
+            drawCharts();
+            $('app').classList.remove('busy');
+            const warning =
+              m.residual !== null && m.residual > 1e-4 ? ' Optimization is approximate; inspect the residual.' : '';
+            $('status').textContent =
+              `Ready — ${m.n} scatterers per medium; λ = ${((2 * Math.PI) / m.k).toFixed(2)} cm.` + warning;
+            active.terminate();
+            worker = null;
+          }
+        };
+        active.onerror = (e) => {
+          if (worker !== active) return;
+          $('status').textContent = 'Worker error: ' + e.message;
+          $('app').classList.remove('busy');
+          active.terminate();
+          worker = null;
+        };
+        active.postMessage({ p, cache: cache && key === cacheKey ? cache : null });
+      }
+      for (const id of ['chi', 'freq', 'rho', 'strength', 'beta']) {
+        $(id).addEventListener('input', schedule);
+      }
+      $('speed').addEventListener('input', labels);
+      $('newSeed').onclick = () => {
+        seed++;
+        run();
+      };
+      $('pause').onclick = () => {
+        paused = !paused;
+        $('pause').textContent = paused ? 'Play' : 'Pause';
+      };
+      $('low').onclick = () => {
+        $('freq').value = 5;
+        labels();
+        run();
+      };
+      $('high').onclick = () => {
+        $('freq').value = 8;
+        labels();
+        run();
+      };
+
+      $('view').onchange = () => {
+        const descriptions = {
+          wave: 'Elevation: blue = negative, white = zero, orange = positive. Shared color scale.',
+          amplitude: 'Amplitude: dark = low, gold = high. Shared nonlinear color scale.',
+          phase: 'Phase: cyclic hue from −π to +π. Undefined inside masked scatterers.',
+          current: 'Current magnitude: dark = low, gold = high. Normalized by incident current.',
+        };
+        $('colorLegend').textContent = descriptions[$('view').value];
+      };
+
+      function lengthText(v) {
+        if (v === null || !Number.isFinite(v)) return 'No decay fit';
+        return v > 999 ? v.toExponential(2) + ' cm' : v.toFixed(1) + ' cm';
+      }
+      function updateMetrics() {
+        for (const [field, ellID, fitID] of [
+          [data.a, 'ellRandom', 'fitRandom'],
+          [data.b, 'ellShu', 'fitShu'],
+        ]) {
+          $(ellID).textContent = lengthText(field.fit.ell);
+          const r2 = field.fit.r2 === null ? 'undefined' : field.fit.r2.toFixed(2);
+          $(fitID).textContent = `R² = ${r2}; α = ${field.fit.alpha.toFixed(4)} cm⁻¹`;
+        }
+        $('threshold').textContent = data.K > 0 ? data.thresholdHz.toFixed(2) + ' Hz' : 'No SHU window';
+        $('regime').textContent =
+          `k = ${data.k.toFixed(3)}; K/2 = ${(data.K / 2).toFixed(3)} cm⁻¹` +
+          (data.K > 0 ? (2 * data.k <= data.K ? ' · below cutoff' : ' · above cutoff') : '');
+        $('residual').textContent = data.residual === null ? 'No constrained modes' : data.residual.toExponential(2);
+        $('patternInfo').textContent =
+          `${data.M} independent ±q pairs; discrete χ ≈ ${(data.M / (2 * (data.n - 1))).toFixed(3)}`;
+
+        const amplitudes = [];
+        for (const f of [data.a, data.b]) {
+          for (let i = 0; i < f.re.length; i += 4) {
+            if (!f.mask[i]) amplitudes.push(Math.hypot(f.re[i], f.im[i]));
+          }
+        }
+        amplitudes.sort((a, b) => a - b);
+        data.scale = Math.max(0.3, amplitudes[Math.floor(0.97 * amplitudes.length)] || 1);
+      }
+
+      /* ---------- Streamlines and contour geometry ---------- */
+      function prepareView(f, canvas) {
+        f.canvas = canvas;
+        f.ctx = canvas.getContext('2d');
+        f.off = document.createElement('canvas');
+        f.off.width = f.off.height = data.W;
+        f.offctx = f.off.getContext('2d');
+        f.image = f.offctx.createImageData(data.W, data.W);
+        f.paths = streamlines(f);
+        f.contourSegments = contourSegments(f, [0.2, 0.5, 1, 2]);
+      }
+
+      function direction(f, x, y) {
+        const N = data.W,
+          h = data.L / (N - 1),
+          gx = x / h,
+          gy = y / h;
+        const ix = Math.floor(gx),
+          iy = Math.floor(gy);
+        if (ix < 1 || iy < 1 || ix >= N - 2 || iy >= N - 2) return null;
+        const a = gx - ix,
+          b = gy - iy,
+          i = iy * N + ix;
+        if (f.mask[i] || f.mask[i + 1] || f.mask[i + N] || f.mask[i + N + 1]) return null;
+        function sample(arr) {
+          return (1 - b) * ((1 - a) * arr[i] + a * arr[i + 1]) + b * ((1 - a) * arr[i + N] + a * arr[i + N + 1]);
+        }
+        const vx = sample(f.jx),
+          vy = sample(f.jy),
+          m = Math.hypot(vx, vy);
+        return m < 1e-5 ? null : [vx / m, vy / m];
+      }
+      function trace(f, x, y, sign) {
+        const pts = [[x, y]],
+          step = 0.16;
+        for (let i = 0; i < 600; i++) {
+          const v = direction(f, x, y);
+          if (!v) break;
+          const mid = direction(f, x + (sign * step * v[0]) / 2, y + (sign * step * v[1]) / 2);
+          if (!mid) break;
+          x += sign * step * mid[0];
+          y += sign * step * mid[1];
+          if (x < 0.3 || y < 0.3 || x > data.L - 0.3 || y > data.L - 0.3) break;
+          pts.push([x, y]);
+          if (i > 40 && i % 20 === 0) {
+            const old = pts[Math.max(0, pts.length - 35)];
+            if (Math.hypot(x - old[0], y - old[1]) < 0.18) break;
+          }
+        }
+        return pts;
+      }
+      function streamlines(f) {
+        const paths = [];
+        for (let j = 0; j < 19; j++) {
+          const y = 0.8 + (j * (data.L - 1.6)) / 18;
+          const path = trace(f, 0.5, y, 1);
+          if (path.length > 5) paths.push(path);
+        }
+        // Interior seeds reveal flow paths interrupted by point masks.
+        for (let a = 1; a <= 3; a++) {
+          for (let b = 1; b <= 6; b++) {
+            const x = (a * data.L) / 4,
+              y = (b * data.L) / 7;
+            const back = trace(f, x, y, -1).reverse();
+            const forward = trace(f, x, y, 1);
+            const path = back.concat(forward.slice(1));
+            if (path.length > 15) paths.push(path);
+          }
+        }
+        return paths;
+      }
+      function contourSegments(f, levels) {
+        const N = data.W,
+          h = data.L / (N - 1),
+          segments = [];
+        for (const level of levels) {
+          for (let y = 1; y < N - 2; y++)
+            for (let x = 1; x < N - 2; x++) {
+              const ids = [y * N + x, y * N + x + 1, (y + 1) * N + x + 1, (y + 1) * N + x];
+              if (ids.some((i) => f.mask[i])) continue;
+              const coords = [
+                [x, y],
+                [x + 1, y],
+                [x + 1, y + 1],
+                [x, y + 1],
+              ];
+              const hits = [];
+              for (let e = 0; e < 4; e++) {
+                const j = (e + 1) % 4,
+                  va = f.jm[ids[e]],
+                  vb = f.jm[ids[j]];
+                if (va < level === vb < level) continue;
+                const t = (level - va) / (vb - va);
+                hits.push([
+                  h * (coords[e][0] + t * (coords[j][0] - coords[e][0])),
+                  h * (coords[e][1] + t * (coords[j][1] - coords[e][1])),
+                ]);
+              }
+              // Resolve the saddle ambiguity using the cell-center value.
+              if (hits.length === 4) {
+                const center = ids.reduce((sum, i) => sum + f.jm[i], 0) / 4;
+                if (center >= level === f.jm[ids[0]] >= level) {
+                  segments.push([hits[0], hits[1]], [hits[2], hits[3]]);
+                } else {
+                  segments.push([hits[0], hits[3]], [hits[1], hits[2]]);
+                }
+              } else if (hits.length === 2) segments.push(hits);
+            }
+        }
+        return segments;
+      }
+
+      /* ---------- Color maps and animation ---------- */
+      const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+      const waveColors = [],
+        heatColors = [],
+        phaseColors = [];
+      for (let i = 0; i < 256; i++) {
+        const t = i / 255;
+        const low = [28, 91, 182],
+          mid = [224, 237, 244],
+          high = [238, 105, 53];
+        const A = t < 0.5 ? low : mid,
+          B = t < 0.5 ? mid : high,
+          s = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+        waveColors.push(A.map((v, j) => Math.round(v + (B[j] - v) * s)));
+        const stops = [
+          [7, 15, 31],
+          [26, 74, 111],
+          [32, 153, 166],
+          [242, 195, 86],
+          [255, 243, 211],
+        ];
+        const z = t * 4,
+          n = Math.min(3, Math.floor(z)),
+          u = z - n;
+        heatColors.push(stops[n].map((v, j) => Math.round(v + u * (stops[n + 1][j] - v))));
+        const hue = t * 6,
+          c = 1,
+          X = 1 - Math.abs((hue % 2) - 1);
+        const rgb =
+          hue < 1
+            ? [c, X, 0]
+            : hue < 2
+              ? [X, c, 0]
+              : hue < 3
+                ? [0, c, X]
+                : hue < 4
+                  ? [0, X, c]
+                  : hue < 5
+                    ? [X, 0, c]
+                    : [c, 0, X];
+        phaseColors.push(rgb.map((v) => Math.round(35 + 210 * v)));
+      }
+
+      function drawField(f) {
+        const N = data.W,
+          pixels = f.image.data,
+          mode = $('view').value;
+        const cp = Math.cos(phase),
+          sp = Math.sin(phase);
+        for (let i = 0; i < N * N; i++) {
+          let color;
+          if (f.mask[i]) color = [5, 9, 17];
+          else if (mode === 'wave') {
+            const v = (f.re[i] * cp + f.im[i] * sp) / data.scale;
+            color = waveColors[Math.round(255 * clamp(0.5 + 0.5 * v, 0, 1))];
+          } else if (mode === 'phase') {
+            const a = Math.atan2(f.im[i], f.re[i]);
+            color = phaseColors[Math.round((255 * (a + Math.PI)) / (2 * Math.PI))];
+          } else {
+            const value = mode === 'current' ? f.jm[i] : f.re[i] * f.re[i] + f.im[i] * f.im[i];
+            const norm = mode === 'current' ? Math.log(4) : Math.log1p(2 * data.scale * data.scale);
+            color = heatColors[Math.round(255 * clamp(Math.log1p(value) / norm, 0, 1))];
+          }
+          const j = 4 * i;
+          pixels[j] = color[0];
+          pixels[j + 1] = color[1];
+          pixels[j + 2] = color[2];
+          pixels[j + 3] = 255;
+        }
+        f.offctx.putImageData(f.image, 0, 0);
+        const ctx = f.ctx,
+          C = f.canvas.width,
+          s = C / data.L;
+        ctx.clearRect(0, 0, C, C);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(f.off, 0, 0, C, C);
+
+        if ($('contours').checked) {
+          ctx.strokeStyle = 'rgba(100,255,237,.60)';
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          for (const seg of f.contourSegments) {
+            ctx.moveTo(seg[0][0] * s, seg[0][1] * s);
+            ctx.lineTo(seg[1][0] * s, seg[1][1] * s);
+          }
+          ctx.stroke();
+        }
+        if ($('streams').checked) {
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(255,255,255,.55)';
+          for (const path of f.paths) {
+            ctx.beginPath();
+            path.forEach((p, i) => (i ? ctx.lineTo(p[0] * s, p[1] * s) : ctx.moveTo(p[0] * s, p[1] * s)));
+            ctx.stroke();
+          }
+          // Moving markers follow the computed current, not the wave phase.
+          ctx.fillStyle = 'rgba(255,255,255,.94)';
+          f.paths.forEach((path, index) => {
+            const t = (flowTime * 28 + index * 17) % (path.length - 1);
+            const j = Math.floor(t),
+              u = t - j;
+            const x = path[j][0] * (1 - u) + path[j + 1][0] * u;
+            const y = path[j][1] * (1 - u) + path[j + 1][1] * u;
+            ctx.beginPath();
+            ctx.arc(x * s, y * s, 2.2, 0, 2 * Math.PI);
+            ctx.fill();
+          });
+        }
+        ctx.fillStyle = '#070c15';
+        ctx.strokeStyle = 'rgba(255,255,255,.32)';
+        ctx.lineWidth = 0.6;
+        for (let i = 0; i < f.points.length; i += 2) {
+          ctx.beginPath();
+          ctx.arc(f.points[i] * s, f.points[i + 1] * s, 0.3 * s, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.fillStyle = 'rgba(4,10,20,.75)';
+        ctx.fillRect(10, C - 38, 156, 27);
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px system-ui';
+        ctx.fillText('0          z →          32 cm', 19, C - 20);
+      }
+      function animate(now) {
+        const dt = lastTime ? Math.min((now - lastTime) / 1000, 0.08) : 0;
+        lastTime = now;
+        if (data && !paused) {
+          phase = (phase + dt * 2 * Math.PI * data.p.freq * +$('speed').value) % (2 * Math.PI);
+          flowTime += dt;
+        }
+        if (data && now - lastDraw > 32) {
+          drawField(data.a);
+          drawField(data.b);
+          lastDraw = now;
+        }
+        requestAnimationFrame(animate);
+      }
+
+      /* ---------- Diagnostic plots ---------- */
+      function axes(canvas, xmax, ymin, ymax, xlabel, ylabel, yticks) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width,
+          h = canvas.height;
+        const margin = { l: 65, r: 20, t: 20, b: 48 };
+        const X = (x) => margin.l + (x / xmax) * (w - margin.l - margin.r);
+        const Y = (y) => h - margin.b - ((y - ymin) / (ymax - ymin)) * (h - margin.t - margin.b);
+        ctx.clearRect(0, 0, w, h);
+        ctx.font = '12px system-ui';
+        ctx.lineWidth = 1;
+        ctx.textAlign = 'right';
+        for (const tick of yticks) {
+          const v = typeof tick === 'number' ? tick : tick.value;
+          const label = typeof tick === 'number' ? String(tick) : tick.label;
+          ctx.strokeStyle = '#26354c';
+          ctx.beginPath();
+          ctx.moveTo(X(0), Y(v));
+          ctx.lineTo(X(xmax), Y(v));
+          ctx.stroke();
+          ctx.fillStyle = '#a8b9d1';
+          ctx.fillText(label, X(0) - 9, Y(v) + 4);
+        }
+        ctx.textAlign = 'center';
+        for (let i = 0; i <= 4; i++) {
+          const x = (i * xmax) / 4;
+          ctx.fillStyle = '#a8b9d1';
+          ctx.fillText(x.toFixed(1), X(x), h - 27);
+        }
+        ctx.fillText(xlabel, (X(0) + X(xmax)) / 2, h - 7);
+        ctx.save();
+        ctx.translate(15, (Y(ymin) + Y(ymax)) / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(ylabel, 0, 0);
+        ctx.restore();
+        function line(points, color, dash = []) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(X(0), Y(ymax), X(xmax) - X(0), Y(ymin) - Y(ymax));
+          ctx.clip();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.setLineDash(dash);
+          ctx.beginPath();
+          points.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))));
+          ctx.stroke();
+          ctx.restore();
+        }
+        return { ctx, X, Y, line };
+      }
+
+      function drawCharts() {
+        const L = data.L,
+          W = data.W;
+        const all = [...data.a.profile, ...data.b.profile];
+        const ymax = Math.max(1.1, Math.min(6, Math.max(...all) * 1.08));
+        const d = axes(
+          $('decayChart'),
+          L,
+          0,
+          ymax,
+          'Propagation distance z (cm)',
+          'Coherent intensity',
+          [0, ymax / 4, ymax / 2, (3 * ymax) / 4, ymax].map((v) => ({ value: v, label: v.toFixed(2) })),
+        );
+        d.line(
+          Array.from({ length: W }, (_, i) => {
+            const x = (i * L) / (W - 1);
+            return [x, Math.exp(-2 * data.p.beta * x)];
+          }),
+          '#8392a8',
+          [3, 5],
+        );
+
+        for (const [f, color] of [
+          [data.a, '#60b7ff'],
+          [data.b, '#ffa36b'],
+        ]) {
+          d.line(
+            Array.from(f.profile, (v, i) => [(i * L) / (W - 1), v]),
+            color,
+          );
+          d.line(
+            Array.from({ length: 80 }, (_, i) => {
+              const x = 0.15 * L + (0.7 * L * i) / 79;
+              return [x, Math.exp(f.fit.intercept + f.fit.slope * x)];
+            }),
+            color,
+            [7, 5],
+          );
+        }
+
+        const s = axes(
+          $('structureChart'),
+          data.qmax,
+          -7,
+          1,
+          'Wavevector q (cm⁻¹)',
+          'S(q), logarithmic',
+          [-7, -6, -4, -2, 0, 1].map((v) => ({ value: v, label: '10' + superscript(v) })),
+        );
+        if (data.K > 0) {
+          s.ctx.fillStyle = 'rgba(80,210,160,.10)';
+          s.ctx.fillRect(s.X(0), s.Y(1), s.X(data.K) - s.X(0), s.Y(-7) - s.Y(1));
+          s.ctx.fillStyle = '#78e0bb';
+          s.ctx.textAlign = 'left';
+          s.ctx.fillText('Constrained q ≤ K', s.X(0.08), s.Y(0.6));
+        }
+        for (const [f, color] of [
+          [data.a, '#60b7ff'],
+          [data.b, '#ffa36b'],
+        ]) {
+          s.line(
+            f.spectrum.map(([q, S]) => [q, Math.log10(Math.max(S, 1e-7))]),
+            color,
+          );
+        }
+        s.ctx.strokeStyle = '#d9e5f7';
+        s.ctx.setLineDash([4, 5]);
+        s.ctx.beginPath();
+        s.ctx.moveTo(s.X(2 * data.k), s.Y(-7));
+        s.ctx.lineTo(s.X(2 * data.k), s.Y(1));
+        s.ctx.stroke();
+        s.ctx.setLineDash([]);
+        s.ctx.fillStyle = '#d9e5f7';
+        s.ctx.textAlign = 'right';
+        s.ctx.fillText('2k', s.X(2 * data.k) - 5, s.Y(0.6));
+      }
+      function superscript(n) {
+        return String(n)
+          .split('')
+          .map(
+            (c) =>
+              ({
+                '-': '⁻',
+                0: '⁰',
+                1: '¹',
+                2: '²',
+                3: '³',
+                4: '⁴',
+                5: '⁵',
+                6: '⁶',
+                7: '⁷',
+                8: '⁸',
+                9: '⁹',
+              })[c],
+          )
+          .join('');
+      }
+
+      labels();
+      run();
+      requestAnimationFrame(animate);
+    </script>
+  </body>
+</html>

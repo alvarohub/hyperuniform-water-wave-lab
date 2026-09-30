@@ -1,0 +1,6 @@
+# Keep the local workspace tidy — nothing here is needed by the published site
+.DS_Store
+.vscode/
+
+# Companion paper (large, not part of the web page)
+hyperuniformMediumDiffusionWaves_Emmanuel2602.07067v3.pdf

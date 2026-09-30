@@ -58,6 +58,19 @@
       .reference a:hover {
         color: #8fcaff;
       }
+      .first-look {
+        margin: 0 0 20px;
+      }
+      .first-look ol {
+        margin: 10px 0 12px;
+        padding-left: 22px;
+      }
+      .first-look li {
+        margin: 6px 0;
+      }
+      .first-look strong {
+        color: var(--text);
+      }
       .panel {
         background: var(--panel);
         border: 1px solid var(--border);
@@ -237,6 +250,25 @@
         Compare a random point pattern with a Fourier-optimized SHU pattern. The complex wavefield is computed with a
         coupled-scatterer model. Animation shows the resulting monochromatic steady state.
       </p>
+
+      <section class="panel first-look">
+        <h2>Suggested first comparison</h2>
+        <ol>
+          <li>Leave <strong>χ = 0.45</strong> and frequency at <strong>5 Hz</strong>.</li>
+          <li>Compare the wavefronts, current streamlines, and fitted decay curves.</li>
+          <li>Click <strong>8 Hz</strong> to move above the nominal SHU threshold.</li>
+          <li>Set <strong>χ = 0</strong>: the two patterns become identical, providing a useful consistency check.</li>
+          <li>
+            Set <strong>scatterer coupling</strong> to zero: both fields become freely propagating waves with absorption
+            only.
+          </li>
+        </ol>
+        <p>
+          <strong>Interpret the fitted extinction lengths alongside their R² values.</strong> This simulation
+          deliberately reports single-pattern estimates rather than presenting them as the ensemble-averaged
+          measurements in the paper.
+        </p>
+      </section>
 
       <section class="panel">
         <div class="controls">
